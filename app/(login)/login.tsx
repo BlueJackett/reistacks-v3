@@ -10,8 +10,16 @@ import Link from 'next/link';
 
 import { signIn, signUp } from './actions';
 import { ActionState } from '@/lib/auth/middleware';
+import { MultiStepSignUp } from '../../features/SignUpStepper/MultiStepSignUp';
 
-export function Login ( { mode = 'signin' }: { mode?: 'signin' | 'signup' } )
+
+export function Login ( {
+  mode = 'signin',
+  multiStep = false, // Add a prop for multi-step sign-up
+}: {
+  mode?: 'signin' | 'signup';
+  multiStep?: boolean;
+} )
 {
   const searchParams = useSearchParams();
   const redirect = searchParams.get( 'redirect' );
@@ -23,6 +31,13 @@ export function Login ( { mode = 'signin' }: { mode?: 'signin' | 'signup' } )
     { error: '' },
   );
 
+  // Render the multi-step sign-up form if enabled
+  if ( mode === 'signup' && multiStep )
+  {
+    return <MultiStepSignUp />;
+  }
+
+  // Render the single-step sign-in/sign-up form
   return (
     <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">

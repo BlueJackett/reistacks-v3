@@ -1,10 +1,13 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
 import { useSignUpStore } from '@/stores/useSignUpStore';
+import { useState } from 'react';
+import Step1 from './Step1';
+import Step2 from './Step2';
+import Step3 from './Step3';
+import Step4 from './Step4';
+import { signUp } from '@/app/(login)/actions';
+
 
 export function MultiStepSignUp ()
 {
@@ -23,13 +26,25 @@ export function MultiStepSignUp ()
     setLoading( true );
     try
     {
-      // Call your server action to create the account
-      const response = await fetch( '/api/signup', {
-        method: 'POST',
-        body: JSON.stringify( formData ),
-      } );
-      if ( !response.ok ) throw new Error( 'Signup failed' );
-      // Redirect to dashboard or next step
+      // Call the server action directly
+      const result = await signUp(
+        {
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          organizationName: formData.organizationName,
+          subdomain: formData.subdomain,
+          inviteId: '', // Pass inviteId if applicable
+        },
+        new FormData(), // Pass a FormData object (can be empty if not used)
+      );
+
+      if ( result?.error )
+      {
+        throw new Error( result.error );
+      }
+
+      // Redirect to dashboard on success
       window.location.href = '/dashboard';
     } catch ( error )
     {

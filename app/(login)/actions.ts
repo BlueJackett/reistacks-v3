@@ -14,9 +14,9 @@ import {
 import { redirect } from 'next/navigation';
 import { createCheckoutSession } from '@/lib/payments/stripe';
 
-import { createClient } from '@/utils/supabase/server';
 import { cookies } from 'next/headers';
 import { ActionState } from '@/lib/auth/middleware';
+import { createClient } from '@/utils/supabase/server';
 
 // Initialize Supabase client
 
@@ -38,7 +38,7 @@ async function logActivity(
   });
 }
 export async function signOut() {
-  const supabase = createClient(cookies());
+  const supabase = createClient();
   
   try {
     const { error } = await supabase.auth.signOut();
@@ -122,58 +122,57 @@ const signUpSchema = z.object({
 
 export async function signUp(state: ActionState, formData: FormData) {
   const { email, password, name, organizationName, subdomain, inviteId } = state;
-
+  const supabase = createClient(cookies());
   let organizationId: string;
   let createdOrg: typeof organizations.$inferSelect | null = null;
 
   if (inviteId) {
-    // Handle invitation signup
-    const [invitation] = await db
-      .select()
-      .from(invitations)
-      .where(
-        and(
-          eq(invitations.id, parseInt(inviteId)),
-          eq(invitations.email, email),
-          eq(invitations.status, 'pending'),
-        ),
-      )
-      .limit(1);
+  // Handle invitation signup
+  const [invitation] = await db
+    .select()
+    .from(invitations)
+    .where(
+      and(
+        eq(invitations.id, parseInt(inviteId)),
+        eq(invitations.email, email),
+        eq(invitations.status, 'pending'),
+      ),
+    )
+    .limit(1);
 
-    if (!invitation) {
-      return { error: 'Invalid or expired invitation.', email, password };
-    }
+  if (!invitation) {
+    return { error: 'Invalid or expired invitation.', email, password };
+  }
 
-    organizationId = invitation.organizationId;
-const supabase = createClient(cookies());
-    // Create Supabase auth user
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+  organizationId = invitation.organizationId;
+
+  // Create Supabase auth user
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        name,
+        organization_id: organizationId,
+      },
+    },
+  });
+
+  if (authError || !authData.user) {
+    return {
+      error: 'Failed to create user. Please try again.',
       email,
       password,
-      options: {
-        data: {
-          name,
-          organization_id: organizationId,
-        },
-      },
-    });
+    };
+  }
 
-    if (authError || !authData.user) {
-      return {
-        error: 'Failed to create user. Please try again.',
-        email,
-        password,
-      };
-    }
-
-    await Promise.all([
-      db.update(invitations)
-        .set({ status: 'accepted' })
-        .where(eq(invitations.id, invitation.id)),
-      logActivity(organizationId, authData.user.id, ActivityType.ACCEPT_INVITATION)
-    ]);
-
-  } else {
+  await Promise.all([
+    db.update(invitations)
+      .set({ status: 'accepted' })
+      .where(eq(invitations.id, invitation.id)),
+    logActivity(organizationId, authData.user.id, ActivityType.ACCEPT_INVITATION),
+  ]);
+} else {
     // Handle new organization signup
     if (!organizationName || !subdomain) {
       return {

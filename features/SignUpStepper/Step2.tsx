@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useSignUpStore } from "@/stores/useSignUpStore";
 
-function Step2 ()
+export default function Step2 ()
 {
   const { formData, setFormData, nextStep, prevStep } = useSignUpStore();
 

@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { useSignUpStore } from "@/stores/useSignUpStore";
 import { Loader2 } from "lucide-react";
 
-function Step4 ( {
+export default function Step4 ( {
   onSubmit,
   loading,
 }: {

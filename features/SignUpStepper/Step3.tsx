@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { useSignUpStore } from "@/stores/useSignUpStore";
 import { Key, ReactElement, JSXElementConstructor, ReactNode, ReactPortal, useState } from "react";
 
-function Step3 ()
+export default function Step3 ()
 {
   const { formData, setFormData, nextStep, prevStep } = useSignUpStore();
   const [ vaEmail, setVaEmail ] = useState( '' );
@@ -36,7 +36,7 @@ function Step3 ()
           </div>
         </div>
         <div>
-          { formData.vas.map( ( email: boolean | Key | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined ) => (
+          { formData.vas.map( ( email: string ) => (
             <div key={ email } className="flex items-center justify-between">
               <span>{ email }</span>
               <Button
