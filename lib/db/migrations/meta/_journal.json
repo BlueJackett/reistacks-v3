@@ -5,8 +5,36 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1726443359662,
-      "tag": "0000_soft_the_anarchist",
+      "when": 1740319606375,
+      "tag": "0000_mature_golden_guardian",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1740322107465,
+      "tag": "0001_cold_madripoor",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1740323159743,
+      "tag": "0002_modern_maelstrom",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1740328331657,
+      "tag": "0003_melodic_living_mummy",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1740332676417,
+      "tag": "0004_acoustic_changeling",
       "breakpoints": true
     }
   ]

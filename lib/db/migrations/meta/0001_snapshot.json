@@ -1,6 +1,6 @@
 {
-  "id": "50876038-f40f-49eb-8a99-594be4d64af2",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "174d809d-68aa-4bf3-9bd0-4296d853878e",
+  "prevId": "50876038-f40f-49eb-8a99-594be4d64af2",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -364,6 +364,20 @@
           "primaryKey": false,
           "notNull": false
         },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'member'"
+        },
         "organization_id": {
           "name": "organization_id",
           "type": "text",
@@ -408,7 +422,17 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {},
+  "enums": {
+    "public.role": {
+      "name": "role",
+      "schema": "public",
+      "values": [
+        "owner",
+        "admin",
+        "member"
+      ]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},

@@ -1,86 +1,78 @@
+'use server';
+
 import { desc, and, eq, isNull } from 'drizzle-orm';
-import { db } from './drizzle';
-import { activityLogs, teamMembers, teams, users } from './schema';
 import { cookies } from 'next/headers';
-import { verifyToken } from '@/lib/auth/session';
 
-export async function getUser() {
-  const sessionCookie = (await cookies()).get('session');
-  if (!sessionCookie || !sessionCookie.value) {
+import { db } from './drizzle';
+import { activityLogs, profiles, organizations } from './schema';
+import { createClient } from '@/utils/supabase/server';
+
+
+
+export async function getProfile ()
+{
+  const supabase = createClient(cookies());
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) {
     return null;
   }
 
-  const sessionData = await verifyToken(sessionCookie.value);
-  if (
-    !sessionData ||
-    !sessionData.user ||
-    typeof sessionData.user.id !== 'number'
-  ) {
-    return null;
-  }
-
-  if (new Date(sessionData.expires) < new Date()) {
-    return null;
-  }
-
-  const user = await db
+  const profile = await db
     .select()
-    .from(users)
-    .where(and(eq(users.id, sessionData.user.id), isNull(users.deletedAt)))
+    .from(profiles)
+    .where(eq(profiles.id, user.id))
     .limit(1);
 
-  if (user.length === 0) {
+  if (profile.length === 0) {
     return null;
   }
 
-  return user[0];
+  return profile[0];
 }
 
-export async function getTeamByStripeCustomerId(customerId: string) {
+export async function getOrganizationByStripeCustomerId(customerId: string) {
   const result = await db
     .select()
-    .from(teams)
-    .where(eq(teams.stripeCustomerId, customerId))
+    .from(organizations)
+    .where(eq(organizations.stripeCustomerId, customerId))
     .limit(1);
 
   return result.length > 0 ? result[0] : null;
 }
 
-export async function updateTeamSubscription(
-  teamId: number,
+export async function updateOrganizationSubscription(
+  organizationId: string,
   subscriptionData: {
     stripeSubscriptionId: string | null;
-    stripeProductId: string | null;
-    planName: string | null;
     subscriptionStatus: string;
   }
 ) {
   await db
-    .update(teams)
+    .update(organizations)
     .set({
       ...subscriptionData,
       updatedAt: new Date(),
     })
-    .where(eq(teams.id, teamId));
+    .where(eq(organizations.id, organizationId));
 }
 
-export async function getUserWithTeam(userId: number) {
+export async function getProfileWithOrg(profileId: string) {
   const result = await db
     .select({
-      user: users,
-      teamId: teamMembers.teamId,
+      profile: profiles,
+      organization: organizations,
     })
-    .from(users)
-    .leftJoin(teamMembers, eq(users.id, teamMembers.userId))
-    .where(eq(users.id, userId))
+    .from(profiles)
+    .leftJoin(organizations, eq(profiles.organizationId, organizations.id))
+    .where(eq(profiles.id, profileId))
     .limit(1);
 
   return result[0];
 }
 
-export async function getActivityLogs() {
-  const user = await getUser();
-  if (!user) {
+export async function getActivityLogs(organizationId: string) {
+  const profile = await getProfile();
+  if (!profile) {
     throw new Error('User not authenticated');
   }
 
@@ -90,40 +82,76 @@ export async function getActivityLogs() {
       action: activityLogs.action,
       timestamp: activityLogs.timestamp,
       ipAddress: activityLogs.ipAddress,
-      userName: users.name,
+      userName: profiles.name,
     })
     .from(activityLogs)
-    .leftJoin(users, eq(activityLogs.userId, users.id))
-    .where(eq(activityLogs.userId, user.id))
+    .leftJoin(profiles, eq(activityLogs.userId, profiles.id))
+    .where(eq(activityLogs.organizationId, organizationId))
     .orderBy(desc(activityLogs.timestamp))
     .limit(10);
 }
 
-export async function getTeamForUser(userId: number) {
-  const result = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-    with: {
-      teamMembers: {
-        with: {
-          team: {
-            with: {
-              teamMembers: {
-                with: {
-                  user: {
-                    columns: {
-                      id: true,
-                      name: true,
-                      email: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+export async function getOrganizationForProfile(profileId: string) {
+  const result = await db
+    .select({
+      organization: organizations,
+      members: profiles,
+    })
+    .from(organizations)
+    .leftJoin(
+      profiles,
+      eq(profiles.organizationId, organizations.id)
+    )
+    .where(eq(profiles.id, profileId))
+    .limit(1);
 
-  return result?.teamMembers[0]?.team || null;
+  if (!result.length) {
+    return null;
+  }
+
+  // Get all members for this organization
+  const members = await db
+    .select({
+      id: profiles.id,
+      name: profiles.name,
+      email: profiles.email,
+    })
+    .from(profiles)
+    .where(eq(profiles.organizationId, result[0].organization.id));
+
+  return {
+    ...result[0].organization,
+    members
+  };
+}
+
+export async function getOrganizationMembers(organizationId: string) {
+  return await db
+    .select({
+      id: profiles.id,
+      name: profiles.name,
+      email: profiles.email,
+    })
+    .from(profiles)
+    .where(eq(profiles.organizationId, organizationId));
+}
+
+export async function getOrganizationBySubdomain(subdomain: string) {
+  const result = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.subdomain, subdomain))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function getOrganizationByCustomDomain(domain: string) {
+  const result = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.customDomain, domain))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : null;
 }

@@ -1,15 +1,40 @@
+// lib/payments/actions.ts
 'use server';
 
-import { redirect } from 'next/navigation';
-import { createCheckoutSession, createCustomerPortalSession } from './stripe';
-import { withTeam } from '@/lib/auth/middleware';
+import Stripe from 'stripe';
 
-export const checkoutAction = withTeam(async (formData, team) => {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2023-10-16',
+});
+
+export async function checkoutAction(formData: FormData) {
   const priceId = formData.get('priceId') as string;
-  await createCheckoutSession({ team: team, priceId });
-});
 
-export const customerPortalAction = withTeam(async (_, team) => {
-  const portalSession = await createCustomerPortalSession(team);
-  redirect(portalSession.url);
-});
+  if (!priceId) {
+    return { error: 'Price ID is required' };
+  }
+
+  try {
+    console.log('Creating checkout session with priceId:', priceId);
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/success`,
+      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing`,
+    });
+
+    console.log('Checkout session created:', session.id);
+
+    // Return the session URL for redirection
+    if (session.url) {
+      return { url: session.url };
+    } else {
+      return { error: 'Failed to create checkout session URL' };
+    }
+  } catch (error) {
+    console.error('Stripe API Error:', error);
+    return { error: 'Failed to create checkout session' };
+  }
+}

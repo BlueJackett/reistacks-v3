@@ -49,7 +49,7 @@ function Header() {
                   <AvatarFallback>
                     {user.email
                       .split(' ')
-                      .map((n) => n[0])
+                      .map((n: any[]) => n[0])
                       .join('')}
                   </AvatarFallback>
                 </Avatar>
